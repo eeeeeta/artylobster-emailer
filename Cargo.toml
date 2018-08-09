@@ -1,0 +1,16 @@
+[package]
+name = "artylobster-emailer"
+version = "0.1.0"
+authors = ["eta <eeeeeta@users.noreply.github.com>"]
+
+[dependencies]
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+mailparse = "0.6"
+reqwest = "0.2"
+toml = "0.4"
+native-tls = "0.2"
+imap = { git = "https://github.com/mattnenterprise/rust-imap" }
+failure = "0.1"
+regex = "0.2"

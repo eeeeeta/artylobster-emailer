@@ -1,0 +1,21 @@
+## backoffice stuff
+
+- request https://backoffice.artylobster.com/ to get a CSRF-TOKEN
+  - lol no, it changes all the damn time; update it whenever you get a response back
+  - 
+- login by POST https://backoffice.artylobster.com/api/authentication?cacheBuster=[unix_ts]
+  - post x-www-form-urlencoded data:
+    - j_username: 
+    - j_password: 
+    - remember-me: false
+    - submit: Login
+  - assert that it responds 200 OK
+- then GET https://backoffice.artylobster.com/api/account?cacheBuster=
+  - get the CSRF-TOKEN
+  - assert that it responds 200 OK
+- then POST https://backoffice.artylobster.com/api/customers?cacheBuster=
+  - json payload
+  - refer to photo off phone
+  - assert that it responds 201 Created
+  - we might get a X-pets3dApp-alert which we could display
+- repeat?

@@ -8,6 +8,7 @@ extern crate toml;
 extern crate native_tls;
 extern crate regex;
 extern crate reqwest;
+extern crate chrono;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
@@ -31,6 +32,21 @@ pub struct EmailData {
 }
 #[derive(Default, Clone, Debug, Serialize)]
 #[allow(non_snake_case)]
+pub struct PetData {
+    PartnerPetID: Option<String>,
+    age: Option<String>,
+    customer: Option<BackofficeData>,
+    id: Option<u32>,
+    image: Option<String>,
+    imageContentType: Option<String>,
+    name: Option<String>,
+    orderDate: Option<String>,
+    petCross: Option<String>,
+    petMemorial: Option<String>,
+    processStep: Option<String>,
+}
+#[derive(Default, Clone, Debug, Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct BackofficeData {
     billingAddress1: Option<String>,
     billingAddress2: Option<String>,
@@ -40,7 +56,7 @@ pub struct BackofficeData {
     comments: Option<String>,
     email: Option<String>,
     facebook: Option<String>,
-    id: Option<String>,
+    id: Option<u32>,
     instagram: Option<String>,
     mobile: Option<String>,
     name: Option<String>,
@@ -53,6 +69,7 @@ pub struct BackofficeData {
     twitter: Option<String>,
 }
 use std::fs::File;
+use chrono::Local;
 use std::io::prelude::*;
 use std::collections::HashMap;
 use regex::Regex;
@@ -190,6 +207,45 @@ fn run() -> Result<(), failure::Error> {
             println!("[!] *** Uploading customer '{}' failed ***", n);
             println!("[!] *** Error message: {} ***", e);
             println!("[!] You probably need to do this customer manually.");
+            continue;
+        }
+        println!("[+] attempting to parse returned customer data...");
+        let mut text = String::new();
+        resp.read_to_string(&mut text)?;
+        let cx: BackofficeData = match serde_json::from_str(&text) {
+            Ok(v) => v,
+            Err(e) => {
+                println!("[!] couldn't parse data for customer");
+                println!("[!] *** Error message: {} ***", e);
+                println!("[!] making pet failed");
+                continue;
+            }
+        };
+        println!("[+] Created customer #{}!", cx.id.as_ref().unwrap());
+        println!("[+] processing pet...");
+        let dt = Local::now();
+        let date = dt.format("%Y-%m-%d").to_string();
+        let n = data.petname.clone();
+        let pd = PetData {
+            customer: Some(cx),
+            name: Some(data.petname),
+            orderDate: Some(date),
+            processStep: Some("NEW".to_string()),
+            ..Default::default()
+        };
+        println!("[+] serializing backoffice data");
+        let json = serde_json::to_string(&pd)?;
+        println!("[+] uploading to backoffice...");
+        let mut resp = client.post(&format!("{}/api/petOrders", cfg.backoffice_url))
+            .headers(get_headers(&jar)?)
+            .header(ContentType::json())
+            .body(json)
+            .send()?;
+        if let Err(e) = on_response(&mut jar, &mut resp) {
+            println!("[!] *** Uploading pet '{}' failed ***", n);
+            println!("[!] *** Error message: {} ***", e);
+            println!("[!] You probably need to do this pet manually.");
+            continue;
         }
     }
     Ok(())
